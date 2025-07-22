@@ -8,33 +8,33 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* NotebookLM-inspired color palette */
-    --background: 248 250 252;
-    --foreground: 15 23 42;
+    /* Dark theme - black background with white text */
+    --background: 0 0% 3%;
+    --foreground: 0 0% 98%;
 
-    --card: 255 255 255;
-    --card-foreground: 15 23 42;
+    --card: 0 0% 7%;
+    --card-foreground: 0 0% 98%;
 
-    --popover: 255 255 255;
-    --popover-foreground: 15 23 42;
+    --popover: 0 0% 7%;
+    --popover-foreground: 0 0% 98%;
 
     --primary: 99 102 241;
-    --primary-foreground: 248 250 252;
+    --primary-foreground: 0 0% 98%;
 
-    --secondary: 241 245 249;
-    --secondary-foreground: 51 65 85;
+    --secondary: 0 0% 12%;
+    --secondary-foreground: 0 0% 85%;
 
-    --muted: 248 250 252;
-    --muted-foreground: 100 116 139;
+    --muted: 0 0% 12%;
+    --muted-foreground: 0 0% 65%;
 
     --accent: 129 140 248;
-    --accent-foreground: 15 23 42;
+    --accent-foreground: 0 0% 98%;
 
-    --destructive: 239 68 68;
-    --destructive-foreground: 248 250 252;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
 
-    --border: 226 232 240;
-    --input: 226 232 240;
+    --border: 0 0% 15%;
+    --input: 0 0% 15%;
     --ring: 99 102 241;
 
     /* AI/ML themed gradients */
