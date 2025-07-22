@@ -19,7 +19,12 @@ interface ConfigPanelProps {
 }
 
 export const ConfigPanel = ({ config, onConfigChange }: ConfigPanelProps) => {
-  const [localConfig, setLocalConfig] = useState(config);
+  const [localConfig, setLocalConfig] = useState({
+    llmEndpoint: "https://lmstudiomacmini.gse.com.co:2443/v1",
+    milvusHost: "n8nmacmini.gse.com.co:19531",
+    embeddingModel: "sentence-transformers/all-MiniLM-L6-v2",
+    ...config
+  });
   const [isTestingLLM, setIsTestingLLM] = useState(false);
   const [isTestingMilvus, setIsTestingMilvus] = useState(false);
   const [llmStatus, setLlmStatus] = useState<'idle' | 'success' | 'error'>('idle');
