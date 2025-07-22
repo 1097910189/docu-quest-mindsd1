@@ -1,0 +1,225 @@
+{
+  "upload_workflow": {
+    "name": "Upload Document to NotebookLM",
+    "description": "Workflow para subir documentos automáticamente al sistema RAG",
+    "nodes": [
+      {
+        "name": "Webhook",
+        "type": "n8n-nodes-base.webhook",
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "upload-document",
+          "responseMode": "responseNode"
+        }
+      },
+      {
+        "name": "HTTP Request - Upload",
+        "type": "n8n-nodes-base.httpRequest",
+        "parameters": {
+          "url": "http://localhost:8000/api/upload",
+          "method": "POST",
+          "bodyParametersUi": {
+            "parameter": [
+              {
+                "name": "file",
+                "value": "={{ $json.file }}"
+              },
+              {
+                "name": "embedding_model",
+                "value": "sentence-transformers/all-MiniLM-L6-v2"
+              }
+            ]
+          },
+          "options": {
+            "bodyContentType": "multipart-form-data"
+          }
+        }
+      },
+      {
+        "name": "Respond to Webhook",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={{ $json }}"
+        }
+      }
+    ]
+  },
+  "ask_workflow": {
+    "name": "Ask Question to NotebookLM",
+    "description": "Workflow para hacer preguntas al sistema RAG",
+    "nodes": [
+      {
+        "name": "Webhook",
+        "type": "n8n-nodes-base.webhook",
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "ask-question",
+          "responseMode": "responseNode"
+        }
+      },
+      {
+        "name": "HTTP Request - Ask",
+        "type": "n8n-nodes-base.httpRequest",
+        "parameters": {
+          "url": "http://localhost:8000/api/ask",
+          "method": "POST",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "body": {
+            "question": "={{ $json.question }}",
+            "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
+            "top_k": 5
+          },
+          "options": {
+            "bodyContentType": "json"
+          }
+        }
+      },
+      {
+        "name": "Process Response",
+        "type": "n8n-nodes-base.set",
+        "parameters": {
+          "values": {
+            "string": [
+              {
+                "name": "answer",
+                "value": "={{ $json.answer }}"
+              },
+              {
+                "name": "sources",
+                "value": "={{ $json.sources.join(', ') }}"
+              },
+              {
+                "name": "chunks_used",
+                "value": "={{ $json.context_chunks }}"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "name": "Respond to Webhook",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={{ $json }}"
+        }
+      }
+    ]
+  },
+  "batch_processing_workflow": {
+    "name": "Batch Process Documents",
+    "description": "Procesa múltiples documentos automáticamente",
+    "nodes": [
+      {
+        "name": "Schedule Trigger",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "hours",
+                "value": 1
+              }
+            ]
+          }
+        }
+      },
+      {
+        "name": "Read Files",
+        "type": "n8n-nodes-base.readBinaryFiles",
+        "parameters": {
+          "fileSelector": "/path/to/documents/*.pdf"
+        }
+      },
+      {
+        "name": "Loop Over Files",
+        "type": "n8n-nodes-base.splitInBatches",
+        "parameters": {
+          "batchSize": 1
+        }
+      },
+      {
+        "name": "Upload Each File",
+        "type": "n8n-nodes-base.httpRequest",
+        "parameters": {
+          "url": "http://localhost:8000/api/upload",
+          "method": "POST",
+          "bodyParametersUi": {
+            "parameter": [
+              {
+                "name": "file",
+                "value": "={{ $binary.data }}"
+              }
+            ]
+          },
+          "options": {
+            "bodyContentType": "multipart-form-data"
+          }
+        }
+      },
+      {
+        "name": "Log Results",
+        "type": "n8n-nodes-base.function",
+        "parameters": {
+          "functionCode": "console.log('Processed:', $json.filename, 'Chunks:', $json.chunks_count);\nreturn $input.all();"
+        }
+      }
+    ]
+  },
+  "question_answering_service": {
+    "name": "Question Answering Service",
+    "description": "Servicio que responde preguntas de forma continua",
+    "nodes": [
+      {
+        "name": "Webhook - Questions",
+        "type": "n8n-nodes-base.webhook",
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "qa-service"
+        }
+      },
+      {
+        "name": "Validate Input",
+        "type": "n8n-nodes-base.function",
+        "parameters": {
+          "functionCode": "if (!$json.question || $json.question.trim() === '') {\n  throw new Error('Question is required');\n}\nreturn $input.all();"
+        }
+      },
+      {
+        "name": "Call RAG System",
+        "type": "n8n-nodes-base.httpRequest",
+        "parameters": {
+          "url": "http://localhost:8000/api/ask",
+          "method": "POST",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "body": {
+            "question": "={{ $json.question }}",
+            "embedding_model": "={{ $json.embedding_model || 'sentence-transformers/all-MiniLM-L6-v2' }}",
+            "top_k": "={{ $json.top_k || 5 }}"
+          }
+        }
+      },
+      {
+        "name": "Format Response",
+        "type": "n8n-nodes-base.function",
+        "parameters": {
+          "functionCode": "const response = {\n  question: $json.question,\n  answer: $json.answer,\n  sources: $json.sources,\n  confidence: $json.context_chunks >= 3 ? 'high' : 'medium',\n  timestamp: new Date().toISOString()\n};\nreturn [response];"
+        }
+      },
+      {
+        "name": "Send Email Notification",
+        "type": "n8n-nodes-base.emailSend",
+        "parameters": {
+          "toEmail": "admin@example.com",
+          "subject": "New Q&A Request Processed",
+          "text": "Question: {{ $json.question }}\nAnswer: {{ $json.answer }}\nSources: {{ $json.sources.join(', ') }}"
+        }
+      }
+    ]
+  }
+}
