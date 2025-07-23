@@ -60,15 +60,14 @@ export const ChatInterface = ({ config }: ChatInterfaceProps) => {
     setIsLoading(true);
 
     try {
-      // Aquí iría la llamada real al backend FastAPI
-      const response = await fetch("/api/ask", {
+      // Enviar prompt a localhost:2443
+      const response = await fetch("http://localhost:2443", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          question: userMessage.content,
-          embedding_model: config.embeddingModel,
+          text: userMessage.content,
         }),
       });
 
